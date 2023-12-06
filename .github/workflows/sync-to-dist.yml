@@ -1,13 +1,14 @@
-name: sync list to dist
+name: sync anti-ad from privacy-protection-tools/anti-AD
 
 on:
-  push:
-    branches: 
-      - 'master'
-    paths: 
-      - 'anti-ad-**.*'
-      - 'adblock-for-dnsmasq.conf'
   workflow_dispatch:
+  push: 
+    branches: [ master ]
+  schedule:
+    - cron:  '30 19 * * *'
+    
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -15,33 +16,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - name: clone the website
-      run: git clone https://github.com/privacy-protection-tools/anti-ad.github.io.git ~/website
-    - name: copy some list files
+    - name: checkout
+      uses: actions/checkout@master
+    - name: download the ad-list
+      # run: git clone --depth 1 https://github.com/privacy-protection-tools/anti-AD.git ~/temp
       run: |
-        cp ./anti-ad-easylist.txt ~/website/docs/easylist.txt
-        cp ./anti-ad-easylist.txt.md5 ~/website/docs/easylist.txt.md5
-        cp ./anti-ad-adguard.txt ~/website/docs/adguard.txt
-        cp ./anti-ad-adguard.txt.md5 ~/website/docs/adguard.txt.md5
-        cp ./adblock-for-dnsmasq.conf ~/website/docs/dnsmasq.conf
-        cp ./adblock-for-dnsmasq.conf ~/website/docs/anti-ad-for-dnsmasq.conf
-        cp ./anti-ad-smartdns.conf ~/website/docs/anti-ad-for-smartdns.conf
-        cp ./anti-ad-surge.txt ~/website/docs/surge.txt
-        cp ./anti-ad-surge2.txt ~/website/docs/surge2.txt
-        cp ./anti-ad-clash.yaml ~/website/docs/clash.yaml
-        cp ./anti-ad-domains.txt ~/website/docs/domains.txt
+        wget -q https://raw.githubusercontent.com/privacy-protection-tools/anti-AD/master/anti-ad-surge.txt
+    - name: rename tile to list
+      run: |
+        mv -f anti-ad-surge.txt anti-ad-clash.list
     - name: Commit files
+      id: commit-files
       run: |
-        cd ~/website
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add .
-        git commit -m "pull newest list." -a
+          if [ -n "$(git status --porcelain anti-ad-clash.list)" ]; then
+            git config --local user.email "github-actions[bot]@users.noreply.github.com"
+            git config --local user.name "github-actions[bot]"
+            git add .
+            git commit -m "pull newest list"
+            echo "hasChange=true" >> $GITHUB_OUTPUT
+          else
+            echo "No changes detected"
+          fi       
     - name: Push changes
       uses: ad-m/github-push-action@master
+      if: ${{ steps.commit-files.outputs.hasChange == 'true' }}
       with:
         github_token: ${{ secrets.PERSON_TOKEN }}
-        branch: 'master'
-        directory: '/home/runner/website'
-        repository: 'privacy-protection-tools/anti-ad.github.io'
+        branch: 'main'
+        # repository: 'conscloud/anti-ad-clash'
