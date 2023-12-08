@@ -17,7 +17,7 @@ jobs:
 
     steps:
     - name: checkout
-      uses: actions/checkout@master
+      uses: actions/checkout@main
     - name: download the ad-list
       # run: git clone --depth 1 https://github.com/privacy-protection-tools/anti-AD.git ~/temp
       run: |
@@ -38,7 +38,7 @@ jobs:
             echo "No changes detected"
           fi       
     - name: Push changes
-      uses: ad-m/github-push-action@master
+      uses: ad-m/github-push-action@main
       if: ${{ steps.commit-files.outputs.hasChange == 'true' }}
       with:
         github_token: ${{ secrets.PERSON_TOKEN }}
